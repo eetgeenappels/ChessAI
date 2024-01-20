@@ -1,0 +1,14 @@
+
+Create a client and server using python Flask for a multiplayer chess game. Each player makes two moves each turn. 
+
+Which is stored in this class:
+
+'''python
+class Move:
+    def __init__(self, position, movement_type = 1, french_revolution = False, spawn_piece = Pion) -> None:
+        self.position = position
+        self.french_revolution = french_revolution
+        self.movement_type = movement_type
+'''
+
+Make a system where a client can connect and then wait for another to be matched in a game. Create a class to store and handle individual games.
