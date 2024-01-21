@@ -38,14 +38,18 @@ class Match:
         self.nathan_chess_game.make_move(self.request_move_black())
 
     def request_move_white(self):
-        self.white_player.send(json.dumps({'type': 'move_request'}).encode('utf-8'))
+        self.white_player.send(json.dumps({'type': 'move_request', "is_white_turn": True}).encode('utf-8'))
+        self.black_player.send(json.dumps({'type': 'update', "is_white_turn": True, "your_color_is_white": False})
+                               .encode('utf-8'))
         move_data = self.white_player.recv(1024)
         move_json = json.loads(move_data.decode('utf-8'))
         self.black_player.send(json.dumps({'type': 'enemy_move', 'move': move_json}).encode('utf-8'))
         return Move.from_json(json.dumps(move_json))
 
     def request_move_black(self):
-        self.black_player.send(json.dumps({'type': 'move_request'}).encode('utf-8'))
+        self.black_player.send(json.dumps({'type': 'move_request', "is_white_turn": False}).encode('utf-8'))
+        self.white_player.send(json.dumps({'type': 'update', "is_white_turn": False, "your_color_is_white": True})
+                               .encode('utf-8'))
         move_data = self.black_player.recv(1024)
         move_json = json.loads(move_data.decode('utf-8'))
         self.white_player.send(json.dumps({'type': 'enemy_move', 'move': move_json}).encode('utf-8'))
@@ -107,15 +111,24 @@ def handle_client(sock: socket.socket):
         lobbies.append(new_lobby)
 
     if request['type'] == "join lobby":
-        lobby_id = request["uuid"]
+        lobby_id = request["id"]
+
+        lobby = None
 
         for lobby in lobbies:
-            if lobby.uuid == lobby_id:
-                lobby.join_lobby(sock, player_name)
+            if lobby.lobby_uuid == lobby_id:
+                break
 
-                lobby.player.send(json.dumps({"type": "game starting"}).encode("UTF-8"))
-                lobby.player2.send(json.dumps({"type": "game starting"}).encode("UTF-8"))
-                lobby.match()
+        lobby.join(sock, player_name)
+
+        lobby.player.send(json.dumps({"type": "game starting"}).encode("UTF-8"))
+        lobby.player2.send(json.dumps({"type": "game starting"}).encode("UTF-8"))
+
+        match_thread = threading.Thread(target=lobby.match, args=[])
+        match_thread.daemon = True
+        match_thread.start()
+
+        lobbies.remove(lobby)
 
 
 server_socket.listen(5)

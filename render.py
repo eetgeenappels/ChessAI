@@ -23,9 +23,9 @@ for i in range(8):
 
 
 class Button:
-    def __init__(self, x, y, width, height, subtext_offset = 0, text="", color_base=pygame.Color('lightskyblue3'),
+    def __init__(self, x, y, width, height, subtext_offset=0, text="", color_base=pygame.Color('lightskyblue3'),
                  color_clicked=pygame.Color("dodgerblue2"), text_color=(0, 0, 0),
-                 subtext = "",
+                 subtext="",
                  text_font=pygame.font.SysFont('arial', 20), color_hovered=(100, 100, 100)):
         self.x = x
         self.y = y
@@ -40,7 +40,7 @@ class Button:
         self.subtext = subtext
         self.text_font = text_font
 
-        self.subtext_offset = subtext
+        self.subtext_offset = subtext_offset
 
         self.clicked = False
         self.hovered = False
@@ -58,12 +58,6 @@ class Button:
 
     def render(self, screen):
 
-        text_surface = font.render(self.text, True, self.text_color)
-        screen.blit(text_surface, (self.x, self.y))
-
-        subtext_surface = font.render(self.subtext, True, self.text_color)
-        screen.blit(subtext_surface, (self.x, self.y))
-
         mouseX = pygame.mouse.get_pos()[0]
         mouseY = pygame.mouse.get_pos()[1]
 
@@ -75,6 +69,12 @@ class Button:
             pygame.draw.rect(screen, self.color_hovered, (self.x, self.y, self.width, self.height))
         else:
             pygame.draw.rect(screen, self.color_base, (self.x, self.y, self.width, self.height))
+
+        text_surface = font.render(self.text, True, self.text_color)
+        screen.blit(text_surface, (self.x, self.y))
+
+        subtext_surface = font.render(self.subtext, True, self.text_color)
+        screen.blit(subtext_surface, (self.x, self.y + self.subtext_offset))
 
 
 class ImageButton:
@@ -113,7 +113,7 @@ class ImageButton:
 
 class InputBox:
 
-    def __init__(self, x, y, w, h, text='' , color_inactive=pygame.Color('dodgerblue2'),
+    def __init__(self, x, y, w, h, text='', color_inactive=pygame.Color('dodgerblue2'),
                  color_active=pygame.Color('lightskyblue3'), reset_on_return=True):
         self.rect = pygame.Rect(x, y, w, h)
         self.color = color_inactive
@@ -128,11 +128,7 @@ class InputBox:
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             # If the user clicked on the input_box rect.
-            if self.rect.collidepoint(event.pos):
-                # Toggle the active variable.
-                self.active = not self.active
-            else:
-                self.active = False
+            self.active = self.rect.collidepoint(event.pos)
             # Change the current color of the input box.
             self.color = self.color if self.active else self.color_inactive
         if event.type == pygame.KEYDOWN:
@@ -160,7 +156,6 @@ class InputBox:
 
         # Blit the text
         screen.blit(self.txt_surface, (self.rect.x + 5, self.rect.y + 5))
-
 
 
 def render_board(screen, nathan_chess_game: game.Game, selected_piece: pieces.Piece, merge_mode: bool,

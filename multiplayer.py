@@ -34,7 +34,7 @@ lobby_id = ""
 
 
 def connect():
-    global made_move, in_game, is_client_white, move_made, in_queue, in_lobby_select, lobbies_json, lobby_id
+    global made_move, in_game, is_client_white, move_made, in_queue, in_lobby_select, lobbies_json, lobby_id, action
 
     while ip == "ip":
         pass
@@ -62,9 +62,11 @@ def connect():
     offset = 100
 
     def on_click(button: render.Button):
-        global in_lobby_select, lobby_id
+        global in_lobby_select, lobby_id, action
 
-        lobby_id = button.text
+        lobby_id = button.subtext
+
+        action = 2
 
         in_lobby_select = False
 
@@ -73,7 +75,8 @@ def connect():
         id = lobby[1]["id"]
 
         # render squared
-        button = render.Button(100, 100 + offset * lobby[0], width, height, text=id)
+        button = render.Button(100, 100 + offset * lobby[0], width, height, text=player_name, subtext=id,
+                               subtext_offset=height)
 
         button.on_click = on_click
 
@@ -84,9 +87,13 @@ def connect():
     while in_lobby_select:
         pass
 
+    in_game = True
+
     if action == 1:
         client_socket.send(json.dumps({"type": "create lobby"}).encode('utf-8'))
         in_queue = True
+
+        print("creating lobby")
 
         client_socket.recv(1024)
 
@@ -94,17 +101,21 @@ def connect():
     if action == 2:
         client_socket.send(json.dumps({"type": "join lobby", "id": lobby_id}).encode('utf-8'))
 
+        print("joining lobby")
+
         client_socket.recv(1024)
 
     while running:
 
         message = json.loads(client_socket.recv(1024).decode())
 
-        print(message)
+        print(f"payload: {message}")
+
+        make_alive_call = True
 
         if message["type"] == "move_request":
 
-            nathan_chess_game.wit_aan_de_buurt = is_client_white
+            nathan_chess_game.wit_aan_de_buurt = message["is_white_turn"]
 
             while not made_move:
                 pass
@@ -117,14 +128,23 @@ def connect():
 
             made_move = False
 
+            make_alive_call = False
+
         if message["type"] == "enemy_move":
             move = pieces.Move.from_json(json.dumps(message["move"]))
 
             nathan_chess_game.make_move(move)
 
+        if message["type"] == "update":
+            is_client_white = message["your_color_is_white"]
+            nathan_chess_game.wit_aan_de_buurt = message["is_white_turn"]
 
-textfield = render.InputBox(100, 100, 400, 50)
-textfield2 = render.InputBox(100, 20, 400, 50)
+        # if make_alive_call:
+        # client_socket.send(json.dumps({"type": "alive call"}).encode('utf-8'))
+
+
+textfield = render.InputBox(210, 100, 400, 50)
+textfield2 = render.InputBox(210, 20, 400, 50)
 
 add_lobby_button = render.ImageButton(900, 0, 100, 100, assets.plus)
 
@@ -134,7 +154,6 @@ textfield2.reset_on_return = False
 def on_return_ip(text):
     global ip, textfield2, name
     name = textfield2.text
-    print(textfield2.text)
     ip = text
 
 
@@ -145,7 +164,6 @@ def add_lobby(button):
     global in_lobby_select, action
     in_lobby_select = False
     action = 1
-    print("oi")
 
 
 add_lobby_button.on_click = add_lobby
@@ -196,6 +214,12 @@ def tick(screen: pygame.Surface):
                             render_move_highlights=is_client_white == nathan_chess_game.white_turn())
 
     else:
+
+        name_text_surface = font.render("Name:", False, (0, 0, 0))
+        ip_text_surface = font.render("Server IP:", False, (0, 0, 0))
+
+        screen.blit(name_text_surface, (30, 20))
+        screen.blit(ip_text_surface, (30, 100))
 
         textfield.draw(screen)
         textfield2.draw(screen)
